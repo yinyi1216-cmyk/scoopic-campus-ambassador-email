@@ -1,0 +1,34 @@
+.DS_Store
+.env
+.pnpm-store/
+.tools/
+__pycache__/
+*.py[cod]
+
+# Mail exports and candidate data contain personal information.
+mail_export*/
+mail_inbox_*.json
+messages_after_*.json
+inbox_after_*.json
+matched_*.json
+matched*.json
+*_candidates.csv
+*_candidates.json
+*_classification_audit.csv
+*_status_summary*.csv
+work_sheet_*.json
+sheet_*_status_updates.json
+
+# Authentication artifacts must never be committed.
+mail_auth_*
+mail_send_scope_*
+mail_profile_*.json
+mail_accessible_mailboxes.json
+
+# Runtime plans, replies, reports, and Base payloads may contain PII.
+autoreply_runs/
+campus_autoreply_plan*.json
+suppression_*.json
+flag_messages_*.json
+status_update_*.json
+clear_status_updates.tsv
