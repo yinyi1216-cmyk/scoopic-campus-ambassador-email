@@ -63,6 +63,17 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(result["action"], "reply")
         self.assertEqual(result["template"], "decline")
 
+    def test_agent_kindly_pass_is_polite_reply(self):
+        result = mailer.classify(
+            message(
+                "Re: Creator Program",
+                "Thank you for reaching out! Libby will kindly pass!",
+                sender="agent@talentgroup.com",
+            )
+        )
+        self.assertEqual(result["action"], "reply")
+        self.assertEqual(result["template"], "decline")
+
     def test_quoted_unsubscribe_does_not_override_application(self):
         result = mailer.classify(
             message(

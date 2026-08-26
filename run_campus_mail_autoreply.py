@@ -391,7 +391,7 @@ def classify(msg):
         }
 
     if re.search(
-        r"no thank|not interested|no longer interested|not the right fit|not.*best fit|going to pass|have to pass|have to(?:\s+\w+){0,2}\s+decline|will have to(?:\s+\w+){0,2}\s+decline|decided not to move forward|not moving forward|not be moving forward|don.?t think.*right fit|don.?t think i.?ll|do not participate|unfortunately.*decline|not available|don.?t partner with ai|not from the us|no longer in school|not a student|would like to withdraw|\bwithdraw\b",
+        r"no thank|not interested|no longer interested|not the right fit|not.*best fit|going to pass|(?:will\s+)?kindly pass|have to pass|have to(?:\s+\w+){0,2}\s+decline|will have to(?:\s+\w+){0,2}\s+decline|decided not to move forward|not moving forward|not be moving forward|don.?t think.*right fit|don.?t think i.?ll|do not participate|unfortunately.*decline|not available|don.?t partner with ai|not from the us|no longer in school|not a student|would like to withdraw|\bwithdraw\b",
         text,
         re.I,
     ):
