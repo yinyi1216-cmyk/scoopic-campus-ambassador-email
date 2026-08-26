@@ -74,6 +74,30 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(result["action"], "reply")
         self.assertEqual(result["template"], "applied")
 
+    def test_meeting_and_offline_flags_are_forced_back_to_unread(self):
+        actions = [
+            {
+                "action": "flag",
+                "reason": "meeting_manual_review",
+                "message_id": "meeting-id",
+            },
+            {
+                "action": "flag",
+                "reason": "offline_campus_ambassador_manual",
+                "message_id": "offline-id",
+            },
+            {
+                "action": "flag",
+                "reason": "system_alert",
+                "message_id": "system-id",
+            },
+        ]
+
+        self.assertEqual(
+            mailer.preserve_unread_message_ids(actions),
+            ["meeting-id", "offline-id"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

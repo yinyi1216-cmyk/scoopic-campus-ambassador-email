@@ -744,6 +744,48 @@ def flag_messages(message_ids):
     }
 
 
+def preserve_unread_message_ids(actions):
+    reasons = {
+        "offline_campus_ambassador_manual",
+        "meeting_manual_review",
+    }
+    return list(
+        dict.fromkeys(
+            action["message_id"]
+            for action in actions
+            if action.get("action") == "flag"
+            and action.get("reason") in reasons
+            and action.get("message_id")
+        )
+    )
+
+
+def mark_unread_messages(message_ids):
+    if not message_ids:
+        return {"success": [], "failed": []}
+    data = lark_json(
+        [
+            "mail",
+            "+message-modify",
+            "--as",
+            "user",
+            "--mailbox",
+            MAILBOX,
+            "--message-ids",
+            ",".join(message_ids),
+            "--add-label-ids",
+            "unread",
+            "--format",
+            "json",
+        ]
+    )
+    payload = data.get("data") or data
+    return {
+        "success": payload.get("success_message_ids") or [],
+        "failed": payload.get("failed_message_ids") or [],
+    }
+
+
 def mark_read_messages(message_ids):
     if not message_ids:
         return {"success": [], "failed": []}
@@ -1017,6 +1059,9 @@ def execute_plan(plan_file):
         if action.get("action") == "flag" and action.get("message_id")
     ]
     flag_result = flag_messages(flag_ids)
+    preserve_unread_result = mark_unread_messages(
+        preserve_unread_message_ids(plan["actions"])
+    )
 
     reply_results = []
     for action in plan["actions"]:
@@ -1040,6 +1085,7 @@ def execute_plan(plan_file):
         "plan_file": str(plan_file),
         "suppression_result": suppression_result,
         "flag_result": flag_result,
+        "preserve_unread_result": preserve_unread_result,
         "reply_results": reply_results,
         "read_result": read_result,
         "status_update_candidates": status_update_candidates,
@@ -1048,6 +1094,8 @@ def execute_plan(plan_file):
             "suppression_failed": suppression_result.get("failed", 0),
             "flag_success": len(flag_result["success"]),
             "flag_failed": len(flag_result["failed"]),
+            "preserve_unread_success": len(preserve_unread_result["success"]),
+            "preserve_unread_failed": len(preserve_unread_result["failed"]),
             "reply_attempted": len(reply_results),
             "reply_success": sum(1 for item in reply_results if reply_sent(item)),
             "reply_failed": sum(1 for item in reply_results if not reply_sent(item)),
