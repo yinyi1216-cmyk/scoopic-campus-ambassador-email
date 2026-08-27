@@ -205,7 +205,9 @@ def top_body(text):
     text = (text or "").replace("\r", "\n")
     patterns = [
         r"\bOn\s+(Mon|Tue|Wed|Thu|Fri|Sat|Sun),.*?wrote:",
+        r"\bOn\s+(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),.*?wrote:",
         r"\bOn\s+[A-Z][a-z]{2,9}\s+\d{1,2},\s+\d{4},.*?wrote:",
+        r"\bSent from Yahoo Mail for iPhone\s+On\s+.+?wrote:",
         r"(?m)^\s*On\s+.+?campusambassador@scoopic\.ai\s+wrote:",
         r"(?m)^\s*On\s+.+?<campusambassador@scoopic\.ai>\s*wrote:",
         r"(?m)^\s*On\s+.+?campusambassador\s*<campusambassador@scoopic\.ai>",
@@ -293,16 +295,22 @@ def is_offline_campus_inquiry(subject, sender, top):
     identity_text = f"{sender} {top}".lower()
 
     outreach_subject = bool(
-        re.search(r"\bopportunities for\b", subject_text)
-        and re.search(
-            r"\b(university|college|school|organization|chapter|fraternity|sorority|panhellenic)\b",
-            subject_text,
+        (
+            re.search(r"\bopportunities for\b", subject_text)
+            and re.search(
+                r"\b(university|college|school|organization|chapter|fraternity|sorority|panhellenic)\b",
+                subject_text,
+            )
+        )
+        or (
+            re.search(r"\bpaid campus ambassador\b", subject_text)
+            and "creator" not in subject_text
         )
     )
     campus_identity = bool(
         re.search(r"\b(university|college|campus|class of ['’]?\d{2})\b", identity_text)
         and re.search(
-            r"\b(chapter president|chapter member|fraternity|sorority|panhellenic|interfraternity|greek life|recruitment chair|vice president of recruitment|social chair|philanthropy chair|executive board)\b",
+            r"\b(chapter president|chapter member|fraternity|sorority|panhellenic|interfraternity|greek life|recruitment chair|vice president of recruitment|social chair|philanthropy chair|executive board|club network|student organization|american marketing association)\b",
             identity_text,
         )
     )
@@ -357,11 +365,14 @@ def classify(msg):
     if "brevo" in full_text or "api key expired" in full_text:
         return {"category": "系统告警", "action": "flag", "reason": "system_alert"}
 
-    if "+canned.response@" in sender or re.search(r"out of office|automatic response|automated response|closed for (the )?summer|inquiry received|support team|overwhelming volume.{0,160}(can not|cannot|can.?t) respond|thanks so much for your message.{0,160}will get back to you soon|will get back to you soon about potential collaborations?", text, re.I):
+    if "+canned.response@" in sender or re.search(r"out of office|automatic response|automated response|automatically forwarded|no longer works here|closed for (the )?summer|inquiry received|support team|overwhelming volume.{0,160}(can not|cannot|can.?t) respond|thanks so much for your message.{0,160}will get back to you soon|will get back to you soon about potential collaborations?", text, re.I):
         action = "flag" if re.search(r"please reach out|while i.?m away|contact\s+[A-Z0-9._%+\-]+@", text, re.I) else "no_reply"
         return {"category": "自动回复/OOO", "action": action, "reason": "auto_response"}
 
     if re.search(r"thank you,?\s+looking forward to it|thanks,?\s+looking forward to it", text, re.I):
+        return {"category": "无需回复", "action": "no_reply", "reason": "simple_thank_you"}
+
+    if len(top) <= 160 and re.search(r"\bthank(?:s| you)(?: so much)?[!. ]+(?:you too|will do)[!. ]*", top, re.I):
         return {"category": "无需回复", "action": "no_reply", "reason": "simple_thank_you"}
 
     if re.search(r"\bbest of luck\b", text, re.I):
@@ -376,18 +387,18 @@ def classify(msg):
             "notes": (top or subject)[:500],
         }
 
-    if is_offline_campus_inquiry(subject, sender, top):
-        return {
-            "category": "线下校园大使/校园组织",
-            "action": "flag",
-            "reason": "offline_campus_ambassador_manual",
-        }
-
     if is_meeting_related(text):
         return {
             "category": "约面谈/面试相关（人工）",
             "action": "flag",
             "reason": "meeting_manual_review",
+        }
+
+    if is_offline_campus_inquiry(subject, sender, top):
+        return {
+            "category": "线下校园大使/校园组织",
+            "action": "flag",
+            "reason": "offline_campus_ambassador_manual",
         }
 
     if re.search(
@@ -450,7 +461,7 @@ def classify(msg):
     if re.search(r"high school|senior year in high school|my son|my daughter|\bunderage\b|\b1[0-7][ -]?year[ -]?old\b|\bteen creator\b|i am (her|his|their) parent", text, re.I):
         return {"category": "其他需确认", "action": "flag", "reason": "family_member_or_non_college_applicant"}
 
-    if re.search(r"completed the form|(?:i|we|i.?ve|we.?ve)\s+(?:just\s+)?submitted\s+(?:my|our|the)\s+(?:application|form)|submitted my application|just applied|i applied|we applied|applied already|(?:i|we|i.?ve|we.?ve)\s+(?:just\s+)?filled out|filled this out", text, re.I):
+    if re.search(r"completed (?:my|our|the)?\s*(?:application|form)|(?:i|we|i.?ve|we.?ve)\s+(?:just\s+)?submitted\s+(?:my|our|the)\s+(?:application|form)|submitted my application|just applied|i applied|we applied|applied already|\bapplied(?:!|\.|,|\s+thank)|(?:i|we|i.?ve|we.?ve)\s+(?:just\s+)?filled out|filled this out", text, re.I):
         return {"category": "已提交申请/填表", "action": "reply", "template": "applied"}
 
     faq_patterns = [

@@ -24,6 +24,26 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(result["action"], "flag")
         self.assertEqual(result["reason"], "offline_campus_ambassador_manual")
 
+    def test_paid_campus_ambassador_subject_is_offline(self):
+        result = mailer.classify(
+            message(
+                "Re: Paid Campus Ambassador Opportunity at UCB",
+                "I'm still highly interested and look forward to the next steps.",
+            )
+        )
+        self.assertEqual(result["action"], "flag")
+        self.assertEqual(result["reason"], "offline_campus_ambassador_manual")
+
+    def test_university_club_network_is_offline(self):
+        result = mailer.classify(
+            message(
+                "Re: Paid Opportunity for USC Students",
+                "I'd be happy to share this with our club network. President, American Marketing Association, University of Southern California",
+            )
+        )
+        self.assertEqual(result["action"], "flag")
+        self.assertEqual(result["reason"], "offline_campus_ambassador_manual")
+
     def test_meeting_request_is_manual(self):
         result = mailer.classify(
             message(
@@ -84,6 +104,43 @@ class ClassificationTests(unittest.TestCase):
         )
         self.assertEqual(result["action"], "reply")
         self.assertEqual(result["template"], "applied")
+
+    def test_yahoo_quoted_unsubscribe_does_not_override_application(self):
+        result = mailer.classify(
+            message(
+                "Re: Creator Program",
+                "Applied! Thank you! Sent from Yahoo Mail for iPhone On Wednesday, August 26, 2026, 2:15 PM, campusambassador@scoopic.ai wrote: Unsubscribe",
+            )
+        )
+        self.assertEqual(result["action"], "reply")
+        self.assertEqual(result["template"], "applied")
+
+    def test_completed_application_is_acknowledged(self):
+        result = mailer.classify(
+            message(
+                "Re: Creator Program",
+                "I've just completed the application and I'm excited about the opportunity.",
+            )
+        )
+        self.assertEqual(result["action"], "reply")
+        self.assertEqual(result["template"], "applied")
+
+    def test_former_employee_forward_is_not_replied_to(self):
+        result = mailer.classify(
+            message(
+                "No Longer Works Here Re: Creator Program",
+                "Jasmine no longer works here. Your email has been automatically forwarded to another agent.",
+                sender="jasmine@agency.com",
+            )
+        )
+        self.assertNotEqual(result["action"], "reply")
+        self.assertEqual(result["reason"], "auto_response")
+
+    def test_short_thank_you_too_needs_no_reply(self):
+        result = mailer.classify(
+            message("Re: Creator Program", "Hi Zoe, Thank you so much! You too!")
+        )
+        self.assertEqual(result["action"], "no_reply")
 
     def test_meeting_and_offline_flags_are_forced_back_to_unread(self):
         actions = [
